@@ -7,8 +7,13 @@ MODULES_DIR="$SCRIPT_DIR/modules"
 
 for hook in "$MODULES_DIR"/*/preToolUse.sh; do
     [[ -f "$hook" ]] || continue
-    echo "$INPUT" | bash "$hook"
-    [[ $? -eq 2 ]] && exit 2
+    printf '%s\n' "$INPUT" | bash "$hook"
+    STATUS=$?
+    if [[ $STATUS -eq 2 ]]; then
+        exit 2
+    elif [[ $STATUS -ne 0 ]]; then
+        exit $STATUS
+    fi
 done
 
 exit 0

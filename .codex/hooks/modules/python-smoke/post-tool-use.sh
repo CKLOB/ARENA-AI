@@ -28,5 +28,4 @@ else
 fi
 
 echo "[Hook] Running py_compile for $(basename "$FILE_ABS") ..." >&2
-"$PYTHON" -m py_compile "$FILE_ABS"
-exit 0
+exec "$PYTHON" -m py_compile "$FILE_ABS"

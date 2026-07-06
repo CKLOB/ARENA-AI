@@ -6,7 +6,7 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
     BLOCKED_PATTERNS=(
         "rm -rf[[:space:]]*/[[:space:]]*$"
         "sudo rm"
-        "> /dev/"
+        ">[[:space:]]*/dev/(sd[a-z]|hd[a-z]|mem|kmem|port|nvme|loop)"
         "dd if="
         "mkfs"
         "curl.*\| sh"

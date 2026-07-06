@@ -8,10 +8,12 @@ MODULES_DIR="$SCRIPT_DIR/modules"
 
 for hook in "$MODULES_DIR"/*/pre-tool-use.sh; do
     [[ -f "$hook" ]] || continue
-    echo "$INPUT" | bash "$hook"
+    printf '%s\n' "$INPUT" | bash "$hook"
     STATUS=$?
     if [[ $STATUS -eq 2 ]]; then
         echo '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Dangerous command blocked by project hook"}}'
+        exit 0
+    elif [[ $STATUS -eq 3 ]]; then
         exit 0
     elif [[ $STATUS -ne 0 ]]; then
         exit $STATUS
