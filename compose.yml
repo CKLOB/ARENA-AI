@@ -26,7 +26,7 @@ services:
       - "5000"
       - --backend-store-uri
       - postgresql://mlflow:mlflow@postgres:5432/mlflow
-      - --default-artifact-root
+      - --artifacts-destination
       - /mlflow/artifacts
     ports:
       - "5000:5000"
