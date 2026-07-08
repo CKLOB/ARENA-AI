@@ -1,0 +1,1 @@
+CREATE DATABASE arena_ai;
