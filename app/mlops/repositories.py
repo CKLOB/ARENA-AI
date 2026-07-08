@@ -19,5 +19,5 @@ class ModelVersionRepository:
         return self.db.scalar(stmt)
 
     def get_champion(self) -> ModelVersion | None:
-        stmt = select(ModelVersion).where(ModelVersion.status == ModelStatus.CHAMPION.value)
+        stmt = select(ModelVersion).where(ModelVersion.status == ModelStatus.CHAMPION)
         return self.db.scalar(stmt)

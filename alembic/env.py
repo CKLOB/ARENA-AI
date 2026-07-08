@@ -3,9 +3,9 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from app.mlops import models as mlops_models
+from app.mlops import models as _mlops_models  # noqa: F401
 from app.shared.db import Base, get_database_url
-from app.trading_ai import models as trading_ai_models
+from app.trading_ai import models as _trading_ai_models  # noqa: F401
 
 config = context.config
 
@@ -15,9 +15,6 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 config.set_main_option("sqlalchemy.url", get_database_url())
-
-mlops_models
-trading_ai_models
 
 
 def run_migrations_offline() -> None:
