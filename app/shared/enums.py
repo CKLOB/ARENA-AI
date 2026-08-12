@@ -13,6 +13,12 @@ class TradingAction(str, Enum):
     HOLD = "HOLD"
 
 
+class AiStrategy(str, Enum):
+    STABLE = "STABLE"
+    AGGRESSIVE = "AGGRESSIVE"
+    TREND = "TREND"
+
+
 class ModelStatus(str, Enum):
     CHAMPION = "CHAMPION"
     CHALLENGER = "CHALLENGER"

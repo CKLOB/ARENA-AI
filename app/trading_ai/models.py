@@ -7,22 +7,28 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.shared.db import Base
-from app.shared.enums import Market, TradingAction
+from app.shared.enums import AiStrategy, Market, TradingAction
 
 
 class DecisionLog(Base):
     __tablename__ = "decision_logs"
     __table_args__ = (
         Index("idx_decision_logs_challenge_decided", "challenge_id", "decided_at"),
+        Index("idx_decision_logs_participant_decided", "participant_id", "decided_at"),
         Index("idx_decision_logs_model_version", "model_version"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     challenge_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    participant_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     order_id: Mapped[int | None] = mapped_column(BigInteger)
     symbol_code: Mapped[str] = mapped_column(String(20), nullable=False)
     market: Mapped[Market] = mapped_column(
         Enum(Market, native_enum=False, name="ck_decision_logs_market"),
+        nullable=False,
+    )
+    ai_strategy: Mapped[AiStrategy] = mapped_column(
+        Enum(AiStrategy, native_enum=False, name="ck_decision_logs_ai_strategy"),
         nullable=False,
     )
     feature_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
