@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.shared.db import get_db
-from app.shared.enums import AiStrategy, Market, TradingAction
+from app.shared.enums import AiStrategy, DecisionType, Market, TradingAction
 from app.trading_ai.predictor import decide_action
 
 API_KEY = "test-key"
@@ -53,6 +53,7 @@ class TradingDecisionEndpointTest(unittest.TestCase):
         # 결정 로깅은 엔드포인트의 일부다 (CLAUDE.md 비협상 항목).
         record.assert_called_once()
         kwargs = record.call_args.kwargs
+        self.assertEqual(kwargs["decision_type"], DecisionType.TRADING)
         self.assertEqual(kwargs["challenge_id"], 1)
         self.assertEqual(kwargs["participant_id"], 7)
         self.assertEqual(kwargs["ai_strategy"], AiStrategy.STABLE)
