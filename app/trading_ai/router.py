@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.observability.decision_log import record_decision
 from app.shared.db import get_db
+from app.shared.enums import DecisionType
 from app.shared.http import verify_internal_api_key
 from app.trading_ai import predictor
 from app.trading_ai.schemas import TradingDecisionRequest, TradingDecisionResponse
@@ -21,6 +22,7 @@ def create_trading_decision(
     # 로깅은 이 요청의 일부다. 나중에 따로 하는 것이 아니다.
     decision_id = record_decision(
         db,
+        decision_type=DecisionType.TRADING,
         challenge_id=body.challenge_id,
         participant_id=body.participant_id,
         symbol_code=body.symbol,

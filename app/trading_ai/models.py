@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.shared.db import Base
-from app.shared.enums import AiStrategy, Market, TradingAction
+from app.shared.enums import AiStrategy, DecisionType, Market, TradingAction
 
 
 class DecisionLog(Base):
@@ -16,20 +16,25 @@ class DecisionLog(Base):
         Index("idx_decision_logs_challenge_decided", "challenge_id", "decided_at"),
         Index("idx_decision_logs_participant_decided", "participant_id", "decided_at"),
         Index("idx_decision_logs_model_version", "model_version"),
+        Index("idx_decision_logs_type_decided", "decision_type", "decided_at"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    decision_type: Mapped[DecisionType] = mapped_column(
+        Enum(DecisionType, native_enum=False, name="ck_decision_logs_decision_type"),
+        nullable=False,
+    )
     challenge_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    participant_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    # 추천은 챌린지 단위라 참가자와 전략이 없다.
+    participant_id: Mapped[int | None] = mapped_column(BigInteger)
     order_id: Mapped[int | None] = mapped_column(BigInteger)
     symbol_code: Mapped[str] = mapped_column(String(20), nullable=False)
     market: Mapped[Market] = mapped_column(
         Enum(Market, native_enum=False, name="ck_decision_logs_market"),
         nullable=False,
     )
-    ai_strategy: Mapped[AiStrategy] = mapped_column(
+    ai_strategy: Mapped[AiStrategy | None] = mapped_column(
         Enum(AiStrategy, native_enum=False, name="ck_decision_logs_ai_strategy"),
-        nullable=False,
     )
     feature_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     model_output_probability: Mapped[Decimal] = mapped_column(Numeric(5, 4), nullable=False)

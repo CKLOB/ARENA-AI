@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.recommendation.router import router as recommendation_router
 from app.shared.http import register_exception_handlers
 from app.trading_ai import predictor
 from app.trading_ai.router import router as trading_ai_router
@@ -17,6 +18,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 register_exception_handlers(app)
 app.include_router(trading_ai_router)
+app.include_router(recommendation_router)
 
 
 @app.get("/health")
