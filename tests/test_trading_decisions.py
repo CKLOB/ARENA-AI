@@ -1,12 +1,14 @@
 import os
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
 
 from app.main import app
 from app.shared.db import get_db
 from app.shared.enums import AiStrategy, DecisionType, Market, TradingAction
+from app.mlops.features import FEATURE_NAMES
+from app.trading_ai import predictor
 from app.trading_ai.predictor import decide_action
 
 API_KEY = "test-key"
@@ -70,6 +72,65 @@ class TradingDecisionEndpointTest(unittest.TestCase):
 
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.json()["error"]["message"], "internal server error")
+
+
+class FeatureOrderingTest(unittest.TestCase):
+    """LightGBM Booster는 피처 이름이 아니라 열 순서로 매칭한다.
+
+    predictor가 booster.feature_name() 순서로 재배열하지 않으면, Spring이 보내는
+    JSON 필드 순서가 학습 때와 다를 때 에러 없이 다른 확률이 나온다. 스텁은 항상
+    0.5라 이 버그가 드러나지 않으므로 가짜 booster로 실제 동작을 검증한다.
+    """
+
+    FEATURES = {
+        "rsi": 0.55,
+        "ma5": 1.01,
+        "ma20": 0.99,
+        "volumeChange": 0.1,
+        "macd": 0.002,
+        "volatility": 0.015,
+    }
+
+    def setUp(self):
+        # 열 순서에 의존하는 booster를 흉내내: 받은 순서 그대로 가중합한다.
+        self.booster = MagicMock()
+        self.booster.feature_name.return_value = FEATURE_NAMES
+        self.booster.predict.side_effect = lambda frame: [
+            float(sum((i + 1) * v for i, v in enumerate(frame.iloc[0])))
+        ]
+
+    def test_key_order_does_not_change_prediction(self):
+        with patch.object(predictor, "_booster", self.booster):
+            straight, _ = predictor.predict(self.FEATURES, Market.US)
+            reversed_, _ = predictor.predict(
+                {k: self.FEATURES[k] for k in reversed(list(self.FEATURES))}, Market.US
+            )
+        self.assertEqual(straight, reversed_)
+
+    def test_columns_are_reordered_to_booster_order(self):
+        with patch.object(predictor, "_booster", self.booster):
+            predictor.predict({k: self.FEATURES[k] for k in reversed(list(self.FEATURES))}, Market.US)
+        frame = self.booster.predict.call_args.args[0]
+        self.assertEqual(list(frame.columns), FEATURE_NAMES)
+
+    def test_missing_feature_raises(self):
+        broken = {k: v for k, v in self.FEATURES.items() if k != "macd"}
+        with patch.object(predictor, "_booster", self.booster):
+            with self.assertRaises(ValueError):
+                predictor.predict(broken, Market.US)
+
+    def test_misspelled_feature_raises(self):
+        # 이름만 틀리고 개수가 맞으면 LightGBM은 조용히 통과시킨다. 여기서 잡아야 한다.
+        typo = {("volume_change" if k == "volumeChange" else k): v for k, v in self.FEATURES.items()}
+        with patch.object(predictor, "_booster", self.booster):
+            with self.assertRaises(ValueError):
+                predictor.predict(typo, Market.US)
+
+    def test_market_reaches_the_model(self):
+        with patch.object(predictor, "_booster", self.booster):
+            us, _ = predictor.predict(self.FEATURES, Market.US)
+            coin, _ = predictor.predict(self.FEATURES, Market.COIN)
+        self.assertNotEqual(us, coin)
 
 
 class DecideActionTest(unittest.TestCase):

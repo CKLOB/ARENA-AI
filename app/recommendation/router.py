@@ -21,7 +21,7 @@ def create_recommendation(
     body: RecommendationRequest,
     db: Session = Depends(get_db),
 ) -> RecommendationResponse:
-    scored = [(predictor.predict(candidate.features), candidate) for candidate in body.candidates]
+    scored = [(predictor.predict(candidate.features, body.market), candidate) for candidate in body.candidates]
     # 스텁 모델은 모든 후보가 같은 확률이라 첫 번째가 뽑힌다. max는 동점에서 앞선 것을 유지한다.
     (probability, model_version), best = max(scored, key=lambda item: item[0][0])
 

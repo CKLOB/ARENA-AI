@@ -61,6 +61,25 @@ Claude is an inference-only dependency here — never attempt to fine-tune it. N
 - Feature engineering (moving averages, RSI, volume, MACD, volatility) is computed by the Spring Boot backend and sent in the request — both `/internal/ai/trading-decisions` and `/internal/ai/recommendations` receive `features` rather than deriving them.
 - Decision thresholds, however, must stay separated per market — do not assume shared thresholds across markets with different volatility profiles (see `THRESHOLDS` in `app/trading_ai/predictor.py`).
 
+### Feature Contract — must match the Spring Boot side exactly
+
+`app/mlops/features.py` is the executable source of these definitions; training and inference both read `FEATURE_NAMES` from it. Names and count matching is not enough — if Spring computes a value differently, the model returns a wrong prediction with no error.
+
+| Feature | Definition | Typical range |
+|---|---|---|
+| `rsi` | 14-day RSI divided by 100 | 0 ~ 1 |
+| `ma5` | 5-day SMA / current close | 0.9 ~ 1.1 |
+| `ma20` | 20-day SMA / current close | 0.8 ~ 1.2 |
+| `volumeChange` | (volume / 20-day mean volume) − 1 | −1 ~ 3 |
+| `macd` | (EMA12 − EMA26) / current close | −0.1 ~ 0.1 |
+| `volatility` | 20-day stdev of daily returns | 0 ~ 0.1 |
+
+`ma5`, `ma20`, and `macd` are **ratios to close**, not absolute values. Absolute values put AAPL (~300) and BTC (~70,000) in incomparable feature spaces — a single model cannot learn both.
+
+`market` is appended as a categorical feature by this service (`KR=0, US=1, COIN=2`); Spring sends it as a separate request field, not inside `features`.
+
+**LightGBM matches features by column order, not by name.** `predict()` reorders the incoming dict to `booster.feature_name()` and raises on missing names — do not bypass that, or a reordered JSON payload will silently produce a different decision.
+
 ## Decision Logging Requirements (non-negotiable)
 
 Every time `/internal/ai/trading-decisions` or `/internal/ai/recommendations` is called, persist:

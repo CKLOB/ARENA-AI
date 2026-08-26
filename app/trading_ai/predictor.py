@@ -2,6 +2,7 @@ import logging
 import os
 from pathlib import Path
 
+from app.mlops.features import market_code
 from app.shared.enums import AiStrategy, Market, TradingAction
 
 logger = logging.getLogger(__name__)
@@ -49,15 +50,30 @@ def load_model() -> None:
     logger.info("모델 로드 완료: %s", _version)
 
 
-def predict(features: dict[str, float]) -> tuple[float, str]:
-    """(상승 확률, 모델 버전)."""
+def predict(features: dict[str, float], market: Market) -> tuple[float, str]:
+    """(상승 확률, 모델 버전).
+
+    LightGBM Booster는 피처 이름이 아니라 **열 순서**로 매칭한다. DataFrame으로
+    넘겨도 이름을 보지 않아서, dict 키 순서가 학습 때와 다르면 에러 없이 다른
+    값이 나오고 이름 오타는 조용히 통과한다. 그래서 booster가 기대하는 순서로
+    직접 재배열하고 누락을 명시적으로 잡는다.
+    """
     if _booster is None:
         # ponytail: 스텁. 학습된 Booster가 생기면 load_model()이 채우고 이 분기는 안 탄다.
         return 0.5, STUB_VERSION
 
     import pandas as pd
 
-    probability = float(_booster.predict(pd.DataFrame([features]))[0])
+    # market은 요청 본문의 별도 필드로 오므로 여기서 피처에 합친다.
+    values = {**features, "market": market_code(market)}
+    expected = _booster.feature_name()
+
+    missing = [name for name in expected if name not in values]
+    if missing:
+        raise ValueError(f"피처 누락: {missing} (기대: {expected})")
+
+    row = pd.DataFrame([[values[name] for name in expected]], columns=expected)
+    probability = float(_booster.predict(row)[0])
     return probability, _version
 
 

@@ -16,7 +16,7 @@ def create_trading_decision(
     body: TradingDecisionRequest,
     db: Session = Depends(get_db),
 ) -> TradingDecisionResponse:
-    probability, model_version = predictor.predict(body.features)
+    probability, model_version = predictor.predict(body.features, body.market)
     action = predictor.decide_action(probability, body.market, body.ai_strategy)
 
     # 로깅은 이 요청의 일부다. 나중에 따로 하는 것이 아니다.
