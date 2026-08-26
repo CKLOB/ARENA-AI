@@ -58,7 +58,7 @@ class RecommendationEndpointTest(unittest.TestCase):
         # AAPL 0.4, MSFT 0.8 -> MSFT가 뽑혀야 한다.
         probabilities = {55.0: 0.4, 48.0: 0.8}
 
-        def fake_predict(features):
+        def fake_predict(features, market):
             return probabilities[features["rsi"]], "fake-1"
 
         with patch("app.trading_ai.predictor.predict", side_effect=fake_predict):
